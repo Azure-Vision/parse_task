@@ -17,7 +17,7 @@ def get_args():
     parser.add_argument('--no_add', default=False, action = "store_true", help='Task to parse')
     parser.add_argument('--db_id', default="f5465eb961ea49b79938727a1cd21de3")
     parser.add_argument('--integration_token', default="secret_3ZPuF9UpMOmwxzcSl1At3W4QmllkN9vBd5zA3co5OVQ")
-    parser.add_argument('--data_file_path', default="/Users/hewanrong/Downloads/task_parser_login_data.json")
+    parser.add_argument('--data_file_path', default="task_parser_login_data.json")
     parser.add_argument('--username', default="hwr")
     args = parser.parse_args()
     return args
