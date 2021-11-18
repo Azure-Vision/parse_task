@@ -9,7 +9,6 @@ import datetime
 import pytz, os
 import streamlit as st
 
-
 def get_args():
     parser = argparse.ArgumentParser(description='Parse task')
     parser.add_argument('-t', '--todo', type=str, required=False, default="", help='Task to parse')
@@ -17,18 +16,19 @@ def get_args():
     parser.add_argument('--no_add', default=False, action = "store_true", help='Task to parse')
     parser.add_argument('--db_id', default="f5465eb961ea49b79938727a1cd21de3")
     parser.add_argument('--integration_token', default="secret_3ZPuF9UpMOmwxzcSl1At3W4QmllkN9vBd5zA3co5OVQ")
-    parser.add_argument('--data_file_path', default="task_parser_login_data.json")
+    parser.add_argument('--data_file_path', default="/Users/hewanrong/Downloads/task_parser_login_data.json")
     parser.add_argument('--username', default="hwr")
     args = parser.parse_args()
     return args
-
+args = get_args()
 def insert_page_to_notion(todo, status, start_time, end_time, args):
     # 添加页
     curl_command_add = """curl -X POST https://api.notion.com/v1/pages \
         -H "Authorization: Bearer %s" \
         -H "Content-Type: application/json" \
         -H "Notion-Version: 2021-05-13" \
-        --data '{
+        --data '""" % (args.integration_token)
+    input_json = """{
             "parent": {
                 "database_id": "%s"
             },
@@ -44,7 +44,9 @@ def insert_page_to_notion(todo, status, start_time, end_time, args):
                     "select": {
                         "name": "%s"
                     }
-                },
+                }""" % (args.db_id, todo, status)
+    if start_time != "null":
+        input_json += """,
                 "时间 / DDL": {
                     "date": {
                         "start": "%s",
@@ -52,10 +54,21 @@ def insert_page_to_notion(todo, status, start_time, end_time, args):
                     }
                 }
             }
-        }'""" % (args.integration_token, args.db_id, todo, status, start_time, end_time)
+        }""" % (start_time, end_time)
+    else:
+        input_json += """
+            }
+        }"""
+    curl_command_add = curl_command_add + input_json + "'"
+    if not args.no_print:
+        st.write("input json:")
+        st.write(json.loads(input_json))
+        print("input json:")
+        print(input_json)
     output = subprocess.getoutput(curl_command_add)
     output = "{" + "{".join(output.split("{")[1:])
     result = json.loads(output)
+    st.write("result json:")
     print(result)
     st.write(result)
 
@@ -184,11 +197,15 @@ def parse_date_time(todo, args):
     # start_time = start_time.replace(tzinfo=local_timezone)
     if start_time != "null":
         start_time_str = start_time.isoformat()
+    else:
+        start_time_str = "null"
     if not args.no_print:
         print(f"start_time: {start_time_str}, todo: {todo}")
         st.write(f"start_time: {start_time_str}, todo: {todo}")
-        st.date_input("start_time", start_time)
-        st.time_input("start_time", start_time)
+        if type(start_time) == datetime.datetime or type(start_time) == datetime.date:
+            st.date_input("start_time", start_time)
+        if type(start_time) == datetime.datetime or type(start_time) == datetime.time:
+            st.time_input("start_time", start_time)
     end_time_str = "null"
     return start_time_str, end_time_str, todo
 
@@ -227,58 +244,12 @@ def parse_task(todo, args):
     status, todo = parse_status(todo, start_time, args)
     return todo, start_time, end_time, status
 
-class user_management_system:
-    def __init__(self, args):
-        self.data = {}
-        self.data_file_path = args.data_file_path
-        if os.path.exists(args.data_file_path):
-            with open(args.data_file_path, "r") as fp:
-                self.data = json.load(fp)
-    
-    def login(self, args):
-        form = st.sidebar.form("登录")
-        args.username = form.text_input("用户名", args.username)
-        submitted = form.form_submit_button("提交")
-        if submitted:
-            username_hash = hash(args.username)
-            if username_hash in self.data:
-                args.__dict__.update(self.data[username_hash])
-            else:
-                self.update_args(args.username, args)
-        return args
-    
-    def update_args(self, username, args):
-        self.data[username] = args.__dict__
-        del self.data[username]["username"]
-        json.dump(self.data, open(self.data_file_path, "w+"))
-        if not args.no_print:
-            print(f"update args for {username}: {self.data[username]}")
-            st.sidebar.write(f"更新{username}的配置:")
-            st.sidebar.write(self.data[username])
-        
-    def get_user_setting(self, args):
-        args.no_print = not st.sidebar.checkbox("打印输出", not args.no_print)
-        args.no_add = not st.sidebar.checkbox("添加到待办", not args.no_add)
-        args.db_id = st.sidebar.text_input("Database ID", args.db_id)
-        args.integration_token = st.sidebar.text_input("Integration Token", args.integration_token)
-        return args
-            
-        
-        
 
 if __name__ == '__main__':
-    # todo = sys.argv[1]
-    args = get_args()
-    user_managemer = user_management_system(args)
-    args = user_managemer.login(args)
-    args = user_managemer.get_user_setting(args)
-    if st.sidebar.button("更新用户信息"):
-        user_managemer.update_args(args.username, args)
     if args.todo == "":
         todo = st.text_input("", value = "")
     else:
         todo = args.todo
-    # do_parse = st.button("解析")
     if todo != "":
         todo, start_time, end_time, status = parse_task(todo, args)
         if not args.no_add:
