@@ -14,13 +14,17 @@ def get_args():
     parser.add_argument('-t', '--todo', type=str, required=False, default="", help='Task to parse')
     parser.add_argument('--no_print', default=False, action = "store_true", help='Task to parse')
     parser.add_argument('--no_add', default=False, action = "store_true", help='Task to parse')
-    parser.add_argument('--db_id', default="f5465eb961ea49b79938727a1cd21de3")
-    parser.add_argument('--integration_token', default="secret_3ZPuF9UpMOmwxzcSl1At3W4QmllkN9vBd5zA3co5OVQ")
+    parser.add_argument('--db_id', default="")
+    parser.add_argument('--integration_token', default="")
     parser.add_argument('--data_file_path', default="/Users/hewanrong/Downloads/task_parser_login_data.json")
     parser.add_argument('--username', default="hwr")
     args = parser.parse_args()
     return args
 args = get_args()
+if "db_id" in os.environ:
+    args.db_id = os.environ["db_id"]
+if "integration_token" in os.environ:
+    args.integration_token = os.environ["integration_token"]
 def insert_page_to_notion(todo, status, start_time, end_time, args):
     # 添加页
     curl_command_add = """curl -X POST https://api.notion.com/v1/pages \
