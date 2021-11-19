@@ -16,6 +16,8 @@ def get_args():
     parser.add_argument('--no_add', default=False, action = "store_true", help='Task to parse')
     parser.add_argument('--db_id', default="")
     parser.add_argument('--integration_token', default="")
+    parser.add_argument('--data_file_path', default="/Users/hewanrong/Downloads/task_parser_login_data.json")
+    parser.add_argument('--username', default="hwr")
     args = parser.parse_args()
     return args
 args = get_args()
@@ -216,11 +218,13 @@ def parse_status(todo, start_time, args):
     if start_time is not None:
         status = "提醒 / 日程"
     else:
-        status = "收集箱📦"
-
-    if re.search(r"~长期(待办)?", todo):
+        status = "今日办✋🏻"
+    elif re.search(r"~长期(待办)?", todo):
         status = "长期待办"
         todo = re.sub(r"~长期(待办)?", "", todo)
+    elif re.search(r"~今(日(办?))?", todo):
+        status = "今日办✋🏻"
+        todo = re.sub(r"~今(日(办?))?", "", todo)
     elif re.search(r"~可能(清单)?", todo):
         status = "可能清单"
         todo = re.sub(r"~可能(清单)?", "", todo)
