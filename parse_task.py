@@ -47,7 +47,7 @@ def insert_page_to_notion(todo, status, start_time, end_time, args):
                         "name": "%s"
                     }
                 }""" % (args.db_id, todo, status)
-    if start_time != "null":
+    if start_time != None:
         input_json += """,
                 "时间 / DDL": {
                     "date": {
@@ -188,7 +188,7 @@ def parse_date_time(todo, args):
     todo, time = parse_time(todo, args)
     local_timezone = pytz.timezone('Asia/Shanghai')
     if not date and not time:
-        start_time = "null"
+        start_time = None
     elif date is not None and time is not None:
         start_time = datetime.datetime.combine(date, time, tzinfo=local_timezone)
     elif date is not None:
@@ -197,10 +197,10 @@ def parse_date_time(todo, args):
     elif time is not None:
         start_time = datetime.datetime.combine(today, time, tzinfo=local_timezone)
     # start_time = start_time.replace(tzinfo=local_timezone)
-    if start_time != "null":
+    if start_time != None:
         start_time_str = start_time.isoformat()
     else:
-        start_time_str = "null"
+        start_time_str = None
     if not args.no_print:
         print(f"start_time: {start_time_str}, todo: {todo}")
         st.write(f"start_time: {start_time_str}, todo: {todo}")
@@ -208,7 +208,7 @@ def parse_date_time(todo, args):
             st.date_input("start_time", start_time)
         if type(start_time) == datetime.datetime or type(start_time) == datetime.time:
             st.time_input("start_time", start_time)
-    end_time_str = "null"
+    end_time_str = None
     return start_time_str, end_time_str, todo
 
 
