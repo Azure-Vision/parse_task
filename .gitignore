@@ -1,2 +1,4 @@
-.history
+.history/
+__pycache__/
+super_debug/
 debug.py
