@@ -8,6 +8,7 @@ import pickle
 import datetime
 import pytz, os
 import streamlit as st
+# from debug import debug, mark
 
 def get_args():
     parser = argparse.ArgumentParser(description='Parse task')
@@ -208,7 +209,7 @@ def parse_date_time(todo, args):
             st.date_input("start_time", start_time)
         if type(start_time) == datetime.datetime or type(start_time) == datetime.time:
             st.time_input("start_time", start_time)
-    end_time_str = None
+    end_time_str = "null"
     return start_time_str, end_time_str, todo
 
 
