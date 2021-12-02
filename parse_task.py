@@ -50,7 +50,7 @@ def insert_page_to_notion(todo, status, start_time, end_time, args):
                 }""" % (args.db_id, todo, status)
     if start_time != None:
         input_json += """,
-                "时间 / DDL": {
+                "时间": {
                     "date": {
                         "start": "%s",
                         "end": %s
