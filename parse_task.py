@@ -284,11 +284,14 @@ def save_snippets_list(result):
         file.write(snippets)
 
 
-def update_block_content(content):
+def update_block_content(content, url):
     content = "  ".join(content.split("\n"))
     json_string = '''{
             "text": [{ 
-            "text": { "content": "''' + content + '''" } 
+                "text": { 
+                    "content": "''' + content + '''",
+                    "link": {"type": "url", "url": "''' + url + '''"}
+                } 
             }],
             "checked": false
         }'''
@@ -303,6 +306,7 @@ def update_block_content(content):
         }'"""
     try:
         output = get_curl_result(curl_command)
+        print(output)
     except Exception:
         pass
 def random_snippet(input):
@@ -331,7 +335,8 @@ def random_snippet(input):
     title = snippet["properties"]["标题"]['title'][0]["plain_text"]
     sentence = snippet["properties"]["内容"]["rich_text"][0]["plain_text"]
     tag = snippet["properties"]["标签"]["multi_select"][0]["name"]
-    update_block_content(f"【{title}】\n（{tag}）\n {sentence}")
+    url = snippet["url"]
+    update_block_content(f"【{title}】\n（{tag}）\n {sentence}", url)
 
     path = "Macintosh HD:Users:hewanrong:Downloads:liwu.png"
     buttons = """{"🥳","💪"}"""
