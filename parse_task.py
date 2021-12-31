@@ -1,13 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import argparse
+import datetime
+import json
 import re
 import subprocess
-import json
-import pickle
-import datetime
-import pytz, os
+
+import os
+import pytz
 import streamlit as st
+import random
+
 # from debug import debug, mark
 
 def get_args():
@@ -30,7 +33,7 @@ def insert_page_to_notion(todo, status, start_time, end_time, args):
         -H "Authorization: Bearer %s" \
         -H "Content-Type: application/json" \
         -H "Notion-Version: 2021-05-13" \
-        --data '""" % (args.integration_token)
+        --data '""" % args.integration_token
     input_json = """{
             "parent": {
                 "database_id": "%s"
@@ -70,10 +73,13 @@ def insert_page_to_notion(todo, status, start_time, end_time, args):
         print(input_json)
     output = subprocess.getoutput(curl_command_add)
     output = "{" + "{".join(output.split("{")[1:])
-    result = json.loads(output)
-    st.write("result json:")
-    print(result)
-    st.write(result)
+    try:
+        result_page_id = json.loads(output)["id"]
+    except Exception:
+        result_page_id = "failed"
+    st.write("result page id:")
+    st.write(result_page_id)
+    return result_page_id
 
 
 def next_weekday(day: datetime.date, weekday):
@@ -243,6 +249,103 @@ def parse_task(todo, args):
     return todo, start_time, end_time, status
 
 
+def get_curl_result(curl_command):
+    output = subprocess.getoutput(curl_command)
+    output = "{" + "{".join(output.split("{")[1:])
+    output = re.sub("[0-9]{3} [ 0-9a-z:]*[0-9]{5}",
+                    "", output, count=0, flags=0)
+    output_list = output.split("\n")
+    output = ""
+    for _ in output_list:
+        if len(_) > 5:
+            output += _
+    return output
+
+
+def save_snippets_list(result):
+    snippets_list = []
+    for snippet in result:
+        title, tag, sentence = "", "", ""
+        try:
+            title = snippet["properties"]["标题"]['title'][0]["plain_text"]
+        except Exception:
+            pass
+        try:
+            sentence = snippet["properties"]["内容"]["rich_text"][0]["plain_text"]
+        except Exception:
+            pass
+        try:
+            tag = snippet["properties"]["标签"]["multi_select"][0]["name"]
+        except Exception:
+            pass
+        snippets_list.append(f"【{title}】（{tag}） {sentence}")
+    snippets = "\n".join(snippets_list)
+    with open("random_snippets.txt", "w") as file:
+        file.write(snippets)
+
+
+def update_block_content(content):
+    content = "  ".join(content.split("\n"))
+    json_string = '''{
+            "text": [{ 
+            "text": { "content": "''' + content + '''" } 
+            }],
+            "checked": false
+        }'''
+    curl_command = """
+        curl -X PATCH https://api.notion.com/v1/blocks/e016647341114dc0b370b470798ec67d \
+        -H 'Authorization: Bearer 'secret_3ZPuF9UpMOmwxzcSl1At3W4QmllkN9vBd5zA3co5OVQ'' \
+        -H "Content-Type: application/json" \
+        -H "Notion-Version: 2021-08-16" \
+        -X PATCH \
+        --data '{
+        "to_do": """ + json_string + """
+        }'"""
+    try:
+        output = get_curl_result(curl_command)
+    except Exception:
+        pass
+def random_snippet(input):
+    curl_command = """curl -X POST 'https://api.notion.com/v1/databases/3e24e31ba625407196e4fc54bad210a8/query' \
+    -H 'Authorization: Bearer '""" + args.integration_token + """'' \
+    -H 'Notion-Version: 2021-05-13' \
+    -H "Content-Type: application/json" \
+        --data '{}'"""
+    print(curl_command)
+    try:
+        output = get_curl_result(curl_command)
+        result = json.loads(output)
+        file = open("random_snippets.json", "w+")
+        file.write(output)
+        file.close()
+        result = result["results"]
+    except Exception:
+        file = open("random_snippets.json", "r")
+        result = json.load(file)
+        result = result["results"]
+
+    save_snippets_list(result)
+
+    snippet = random.choice(result)
+
+    title = snippet["properties"]["标题"]['title'][0]["plain_text"]
+    sentence = snippet["properties"]["内容"]["rich_text"][0]["plain_text"]
+    tag = snippet["properties"]["标签"]["multi_select"][0]["name"]
+    update_block_content(f"【{title}】\n（{tag}）\n {sentence}")
+
+    path = "Macintosh HD:Users:hewanrong:Downloads:liwu.png"
+    buttons = """{"🥳","💪"}"""
+    random_scripts = """exec osascript <<EOF 
+            tell application "System Events" 
+                display dialog "处理结果:{}\n\nShow random scripts?" with title "通知" default button 1
+                set returnRecord to the result
+                display dialog "【{}】\n\n{}" with title "{}" with icon alias "{}" buttons {} default button 1
+            end tell
+    EOF
+    """.format(input, title, sentence, tag + " " + title, path, buttons)
+    print(random_scripts)
+    os.system(random_scripts)
+
 if __name__ == '__main__':
     if args.todo == "":
         todo = st.text_input("", value = "")
@@ -251,4 +354,5 @@ if __name__ == '__main__':
     if todo != "":
         todo, start_time, end_time, status = parse_task(todo, args)
         if not args.no_add:
-            insert_page_to_notion(todo, status, start_time, end_time, args)
+            result_page_id = insert_page_to_notion(todo, status, start_time, end_time, args)
+            random_snippet(input=result_page_id)
